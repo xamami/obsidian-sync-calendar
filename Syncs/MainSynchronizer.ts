@@ -1,4 +1,4 @@
-import type { App, Notice, TFile } from "obsidian";
+import type { App, Notice, Plugin, TFile } from "obsidian";
 
 import type { Todo } from "TodoSerialization/Todo";
 import { debug } from 'lib/DebugLog';
@@ -18,9 +18,9 @@ export class MainSynchronizer {
    * Constructor for MainSynchronizer class
    * @param app - The Obsidian App object
    */
-  constructor(app: App) {
+  constructor(app: App, plugin:Plugin) {
     this.app = app;
-    this.calendarSync = new GoogleCalendarSync(this.app);
+    this.calendarSync = new GoogleCalendarSync(this.app, plugin);
     this.obsidianSync = new ObsidianTasksSync(this.app);
   }
 

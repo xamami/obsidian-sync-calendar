@@ -1,7 +1,7 @@
 import { isSortingOption, sortingOptions } from "./Query";
 import type { Query } from "./Query";
 import YAML from "yaml";
-import chrono from "chrono-node"
+import * as chrono from "chrono-node"
 /**
  * Custom error class for parsing errors
  */
@@ -59,6 +59,7 @@ function parseObject(query: any): Query {
     if (typeof query.timeMin !== "string") {
       throw new ParsingError("'timeMin' field must be a string");
     }
+    console.log(chrono.parseDate(query.timeMin))
     if (chrono.parseDate(query.timeMin) != null) { //allows for natural language and relative dates to work for these fields
       query.timeMin = window.moment(chrono.parseDate(query.timeMin))
     }
@@ -74,7 +75,7 @@ function parseObject(query: any): Query {
     if (chrono.parseDate(query.timeMax) != null) { //allows for natural language and relative dates to work for these fields
       query.timeMax = window.moment(chrono.parseDate(query.timeMax))
     }
-    if (!window.moment(query.timeMax).isValid()) {
+    else if (!window.moment(query.timeMax).isValid()) {
       throw new ParsingError("'timeMax' field must be a valid moment string");
     }
   }

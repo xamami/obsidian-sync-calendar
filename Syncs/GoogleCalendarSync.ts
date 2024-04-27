@@ -37,7 +37,22 @@ export class GoogleCalendarSync {
     this.TOKEN_PATH = path.join(this.vault.configDir, 'calendar.sync.token.json');
     this.CREDENTIALS_PATH = path.join(this.vault.configDir, 'calendar.sync.credentials.json');
   }
+  async updateSettingsMenu() {
+    let auth = await this.authorize();
+    const calendar = google.calendar({ version: 'v3', auth });
 
+    // Set the sync and network status to DOWNLOAD
+    gfSyncStatus$.next(SyncStatus.DOWNLOAD);
+    // console.log()
+    
+    let castedPlugin = this.plugin as SyncCalendarPlugin
+    castedPlugin.settingsTab.shouldPutCalendar = true //see main.ts for def
+
+
+    castedPlugin.settingsTab.calendar = await calendar.calendarList.list()
+    castedPlugin.settingsTab.display()
+ 
+  }
   /**
    * Returns a list of completed and uncompleted events.
    * @param startMoment The start moment for the events to retrieve.
@@ -51,8 +66,9 @@ export class GoogleCalendarSync {
     // Set the sync and network status to DOWNLOAD
     gfSyncStatus$.next(SyncStatus.DOWNLOAD);
     // console.log()
-    await window.onGoogleCalendar(await calendar.calendarList.list()) //see main.ts for def
+    
     let castedPlugin = this.plugin as SyncCalendarPlugin
+   
     let calendars = castedPlugin.settings.calendarsToFetchFrom
     // Retrieve the events from Google Calendar
     let eventsListQueryResult = []

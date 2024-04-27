@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: SyncCalendarPluginSettings = {
 
 export default class SyncCalendarPlugin extends Plugin {
   public settings: SyncCalendarPluginSettings;
-
+  public settingsTab: SyncCalendarPluginSettingTab
   public syncStatusItem: HTMLElement;
 
   public netStatus: NetworkStatus;
@@ -50,6 +50,7 @@ export default class SyncCalendarPlugin extends Plugin {
     await this.loadSettings();
     setDebugLogging(this.settings.enableLogging);
     let settingsTab = new SyncCalendarPluginSettingTab(this.app, this)
+    this.settingsTab = settingsTab
     window.onGoogleCalendar = settingsTab.createCalendersWidget //there's definitely a better way to do this, but i'm making a callback from the google calender sync.ts, so that when it fetches the calendar it updates the widget in settings
     this.addSettingTab(settingsTab);
 
@@ -61,6 +62,7 @@ export default class SyncCalendarPlugin extends Plugin {
     gfSyncStatus$.subscribe(newSyncStatus => this.updateSyncStatusItem(newSyncStatus));
 
     this.mainSync = new MainSynchronizer(this.app, this);
+    
 
     this.queryInjector = new QueryInjector(this);
     this.queryInjector.setMainSync(this.mainSync);
@@ -150,16 +152,17 @@ export default class SyncCalendarPlugin extends Plugin {
 
 class SyncCalendarPluginSettingTab extends PluginSettingTab {
   plugin: SyncCalendarPlugin;
-  emptySettings: boolean;
+  calendar: any
+  shouldPutCalendar: boolean;
   constructor(app: App, plugin: SyncCalendarPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-    this.emptySettings = true
+    this.shouldPutCalendar = false
   }
   createCalendersWidget = async (calenders: any) => {
     this.createHeader("Selected Calendars");
     const { containerEl } = this;
-    containerEl.empty();
+   
     console.log(containerEl)
     let actualCalendar = calenders.data.items.map(apiResponseCalendar => {
       return apiResponseCalendar.id
@@ -185,14 +188,18 @@ class SyncCalendarPluginSettingTab extends PluginSettingTab {
       ).controlEl.querySelector("input");
         
     }
-    this.emptySettings = false
-    this.display()
+    // this.shouldPutCalendar = false
+    // this.display()
 
   }
   display(): void {
     
     const { containerEl } = this;
-  
+    containerEl.empty();
+    if (this.shouldPutCalendar) {
+      console.log("displaying calendar!")
+      this.createCalendersWidget(this.calendar)
+    }
     this.createHeader("Fetch");
 
     new Setting(containerEl)
@@ -224,12 +231,6 @@ class SyncCalendarPluginSettingTab extends PluginSettingTab {
             }
           })
       ).controlEl.querySelector("input");
-
-      
-      
-      // .setD
-      
-
 
     this.createHeader("Render");
 
@@ -273,7 +274,7 @@ class SyncCalendarPluginSettingTab extends PluginSettingTab {
       )
       .controlEl.querySelector("input");
     
-    this.referenceEl = containerEl.querySelector("setting-item")
+    // this.referenceEl = containerEl.querySelector("setting-item")
   }
 
   private createHeader(header_title: string, header_desc: string | null = null) {

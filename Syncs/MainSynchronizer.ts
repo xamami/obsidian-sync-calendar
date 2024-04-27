@@ -22,6 +22,7 @@ export class MainSynchronizer {
     this.app = app;
     this.calendarSync = new GoogleCalendarSync(this.app, plugin);
     this.obsidianSync = new ObsidianTasksSync(this.app);
+    this.calendarSync.updateSettingsMenu()
   }
 
   /**

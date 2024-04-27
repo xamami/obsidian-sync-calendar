@@ -115,6 +115,7 @@ export class GoogleCalendarSync {
     // Set the sync status to UPLOAD and attempt to insert the event
     gfSyncStatus$.next(SyncStatus.UPLOAD);
     while (retryTimes < 20 && !isInsertSuccess) {
+      console.log("attempting to send info about " + todo.content)
       ++retryTimes;
       await calendar.events
         .insert({

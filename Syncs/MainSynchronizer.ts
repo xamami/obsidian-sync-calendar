@@ -109,6 +109,13 @@ export class MainSynchronizer {
     // - have blockId
     //    - calendar 比 obsidian 多的那些任务: Obsidian 中删掉的任务
     //    - calendar 和 obsidian 同步的任务
+
+    //translation (thanks chatgpt)
+    // - none blockId: -> Tasks created by Calendar
+    // - have blockId
+    //    - Tasks that are in Calendar but not in Obsidian: Tasks deleted in Obsidian
+    //    - Tasks synchronized between Calendar and Obsidian
+
     let todosCalendarCreate: Todo[] = [];
     clEvents.forEach((event: Todo) => {
       if (!event.blockId || event.blockId.length === 0) {

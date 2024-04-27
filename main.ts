@@ -159,6 +159,7 @@ class SyncCalendarPluginSettingTab extends PluginSettingTab {
   createCalendersWidget = async (calenders: any) => {
     this.createHeader("Selected Calendars");
     const { containerEl } = this;
+    containerEl.empty();
     console.log(containerEl)
     let actualCalendar = calenders.data.items.map(apiResponseCalendar => {
       return apiResponseCalendar.id
@@ -191,10 +192,7 @@ class SyncCalendarPluginSettingTab extends PluginSettingTab {
   display(): void {
     
     const { containerEl } = this;
-    if (this.emptySettings) {
-      containerEl.empty();
-    }
-
+  
     this.createHeader("Fetch");
 
     new Setting(containerEl)

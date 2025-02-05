@@ -136,7 +136,7 @@ export class GoogleCalendarSync {
       await calendar.events
         .insert({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: calendarID,
           resource: Todo.toGoogleEvent(todo)
         } as calendar_v3.Params$Resource$Events$Insert
         )
@@ -180,7 +180,7 @@ export class GoogleCalendarSync {
       await calendar.events
         .delete({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: calendarID,
           eventId: todo.eventId
         } as calendar_v3.Params$Resource$Events$Delete)
         .then(() => {
@@ -224,7 +224,7 @@ export class GoogleCalendarSync {
       await calendar.events
         .patch({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: calendarID,
           eventId: todo.eventId,
           resource: getEventPatch(todo)
         } as calendar_v3.Params$Resource$Events$Patch)

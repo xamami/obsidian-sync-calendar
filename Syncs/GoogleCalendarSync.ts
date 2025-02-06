@@ -68,53 +68,72 @@ export class GoogleCalendarSync {
     // console.log()
     
     let castedPlugin = this.plugin as SyncCalendarPlugin
-   
     let calendars = castedPlugin.settings.calendarsToFetchFrom
     // Retrieve the events from Google Calendar
     let eventsListQueryResult = []
-    for (const key in calendars) {
-      if (!calendars[key]) { //calendar is not enabled
-        continue
-      }
+    let eventsMetaList = eventsListQueryResult;
+    let eventsList: Todo[] = [];
+	
+	for (const key in calendars) {
+	  if (!calendars[key]) { // El calendari no està habilitat
+		continue;
+	  }
 
-      let calendarID = key
-      console.log("getting data for " + calendarID)
-      const oneCalendar =
-        await calendar.events
-          .list({
-            calendarId: calendarID,
-            timeMin: startMoment.toISOString(),
-            maxResults: maxResults,
-            singleEvents: true,
-            orderBy: 'startTime',
-          })
-          .catch(err => {
-            if (err.message == 'invalid_grant') {
-              this.isTokenValid = false;
-            }
-            // Set the network status to CONNECTION_ERROR and the sync status to FAILED_WARNING
-            gfNetStatus$.next(NetworkStatus.CONNECTION_ERROR);
-            gfSyncStatus$.next(SyncStatus.FAILED_WARNING);
-            throw err;
-          });
-          // console.log("data: ", oneCalendar)
-          eventsListQueryResult = [...eventsListQueryResult, ...oneCalendar.data.items]
+	  let calendarID = key;
+	  let calendarName = "Calendari Desconegut"; // 🔹 Valor per defecte
+	  console.log("getting data for " + calendarID);
+	  // 🔹 Recuperar la llista de calendaris per trobar el nom
+    const calendarList = await calendar.calendarList.list();
+    const calendarData = calendarList.data.items?.find(cal => cal.id === calendarID);
+    if (calendarData && calendarData.summary) {
+        calendarName = calendarData.summary;
     }
-    console.log(eventsListQueryResult)
+	    
+	  const oneCalendar = await calendar.events
+		.list({
+		  calendarId: calendarID,
+		  timeMin: startMoment.toISOString(),
+		  maxResults: maxResults,
+		  singleEvents: true,
+		  orderBy: 'startTime',
+		})
+		.catch(err => {
+		  if (err.message == 'invalid_grant') {
+			this.isTokenValid = false;
+		  }
+		  gfNetStatus$.next(NetworkStatus.CONNECTION_ERROR);
+		  gfSyncStatus$.next(SyncStatus.FAILED_WARNING);
+		  throw err;
+		});
+	  
+	  // Afegim la propietat calendarId a cada event recuperat
+	  const eventsAmbCalendarID = oneCalendar.data.items?.map((event) => {
+		return { ...event, calendarId: calendarID };
+	  }) || [];
+
+	  eventsListQueryResult = [...eventsListQueryResult, ...eventsAmbCalendarID];
+	  
+	  eventsAmbCalendarID.forEach((eventMeta) => {
+        eventsList.push(Todo.fromGoogleEvent(eventMeta, calendarID, calendarName));
+	  });
+	}
+
+    console.log(eventsListQueryResult);
+    
     // Set the network status to HEALTH and the sync status to SUCCESS_WAITING
     gfNetStatus$.next(NetworkStatus.HEALTH);
     gfSyncStatus$.next(SyncStatus.SUCCESS_WAITING);
 
-    let eventsMetaList = eventsListQueryResult;
-    let eventsList: Todo[] = [];
-
     if (eventsMetaList != undefined) {
       eventsMetaList.forEach((eventMeta: calendar_v3.Schema$Event) => {
-        eventsList.push(Todo.fromGoogleEvent(eventMeta));
+		eventsList.push(Todo.fromGoogleEvent(eventMeta, eventMeta.calendarId || calendarID, calendarName));
       });
     }
 
+
+	
     return eventsList;
+	
   }
 
   /**
@@ -131,12 +150,13 @@ export class GoogleCalendarSync {
     // Set the sync status to UPLOAD and attempt to insert the event
     gfSyncStatus$.next(SyncStatus.UPLOAD);
     while (retryTimes < 20 && !isInsertSuccess) {
-      console.log("attempting to send info about " + todo.content)
+    console.log(`DEBUG: Intentant inserir event: ${todo.content}`);
+    console.log(`DEBUG: ID del calendari -> ${todo.calendarID}`);
       ++retryTimes;
       await calendar.events
         .insert({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: todo.calendarID,
           resource: Todo.toGoogleEvent(todo)
         } as calendar_v3.Params$Resource$Events$Insert
         )
@@ -180,7 +200,7 @@ export class GoogleCalendarSync {
       await calendar.events
         .delete({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: todo.calendarID,
           eventId: todo.eventId
         } as calendar_v3.Params$Resource$Events$Delete)
         .then(() => {
@@ -224,7 +244,7 @@ export class GoogleCalendarSync {
       await calendar.events
         .patch({
           auth: auth,
-          calendarId: 'primary',
+          calendarId: todo.calendarID,
           eventId: todo.eventId,
           resource: getEventPatch(todo)
         } as calendar_v3.Params$Resource$Events$Patch)

@@ -24,6 +24,7 @@ export class Todo {
   public blockId?: null | string | undefined;
 
   public updated?: null | string | undefined;
+  public calendarID?: string | undefined;
 
   constructor({
     content,
@@ -40,7 +41,8 @@ export class Todo {
     updated,
     calUId,
     eventId,
-    eventHtmlLink
+    eventHtmlLink,
+	calendarID
   }: {
     content: null | string | undefined;
     priority?: null | string | undefined;
@@ -57,6 +59,7 @@ export class Todo {
     calUId?: null | string | undefined;
     eventId?: null | string | undefined;
     eventHtmlLink?: null | string | undefined;
+	calendarID?: string | undefined;
   }) {
     this.content = content;
 
@@ -78,6 +81,7 @@ export class Todo {
     this.eventHtmlLink = eventHtmlLink;
 
     this.updated = updated;
+	this.calendarID = calendarID;
   }
 /**
    * Update the current Todo object with the values from another Todo object.
@@ -177,7 +181,7 @@ export class Todo {
    * @returns The Todo object.
    * @throws Error if the eventMeta object is invalid.
    */
-  static fromGoogleEvent(eventMeta: calendar_v3.Schema$Event): Todo {
+  static fromGoogleEvent(eventMeta: calendar_v3.Schema$Event, calendarId: string, calendarName: string): Todo { //insertat
     let content = eventMeta.summary;
     let calUId = eventMeta.iCalUID;
     let eventId = eventMeta.id;
@@ -186,8 +190,8 @@ export class Todo {
     let blockId = undefined;
     let priority = undefined;
     let doneDateTime= undefined;
-    let startDateTime: string;
-    let dueDateTime: string;
+    let startDateTime: string = "";
+    let dueDateTime: string = "";
     let tags: string[] = [];
     let updated: string | undefined = undefined;
 
@@ -217,19 +221,21 @@ export class Todo {
     if (eventMeta.start!.dateTime === null || eventMeta.start!.dateTime === undefined) {
       startDateTime = window.moment(eventMeta.start!.date).format('YYYY-MM-DD');
     } else {
-      startDateTime = window.moment(eventMeta.start!.dateTime).format('YYYY-MM-DD[T]HH:mm:ssZ');
+      startDateTime = window.moment(eventMeta.start!.dateTime).format('YYYY-MM-DD[@]HH:mm');
     }
 
     if (eventMeta.end!.dateTime === null || eventMeta.end!.dateTime === undefined) {
       dueDateTime = window.moment(eventMeta.end!.date).format('YYYY-MM-DD');
     } else {
-      dueDateTime = window.moment(eventMeta.end!.dateTime).format('YYYY-MM-DD[T]HH:mm:ssZ');
+      dueDateTime = window.moment(eventMeta.end!.dateTime).format('YYYY-MM-DD[@]HH:mm');
     }
 
     if (eventMeta.updated) {
-      updated = window.moment(eventMeta.updated).format('YYYY-MM-DD[T]HH:mm:ssZ');
+    //  updated = window.moment(eventMeta.updated).format('YYYY-MM-DD[T]HH:mm:ssZ');
+	  updated = window.moment(eventMeta.updated).format('YYYY-MM-DD[@]HH:mm');
     }
 
+	content = `#task ${content} (${calendarName})`; // - 🛫 ${startDateTime} ➝ 🏁 ${dueDateTime}`; //insertat
     return new Todo({
       content,
       priority,
@@ -242,7 +248,8 @@ export class Todo {
       eventStatus,
       eventHtmlLink,
       updated,
-      tags
+      tags,
+	  calendarID: calendarId,
     });
   }
 
@@ -251,11 +258,16 @@ export class Todo {
     return datatimeString.match(regDateTime) !== null;
   }
 
-  static momentString(momentString: string, emoji: '🛫' | '⌛' | '🗓'): string {
-    if (Todo.isDatetime(momentString)) {
-      return `${emoji} ${window.moment(momentString).format("YYYY-MM-DD[@]HH:mm")}`;
+  static momentString(startMomentString: string, endMomentString: string): string {
+    if (!endMomentString || endMomentString.trim() === "") {
+        endMomentString = "??:??"; // 
     }
-    return `${emoji} ${momentString}`;
+
+    if (Todo.isDatetime(startMomentString)) {
+        //return `🛫 ${window.moment(startMomentString).format("YYYY-MM-DD[@]HH:mm")} ➝ 📅 ${endMomentString}`;
+		return `🛫 ${window.moment(startMomentString).format("YYYY-MM-DD[@]HH:mm")} ➝ 📅 ${window.moment(this.dueDateTime).format("HH:mm")}`;
+    }
+    return `🛫 ${startMomentString} ➝ 📅 ${endMomentString}`;
   }
 
   public isOverdue(overdueRefer?: moment.Moment): boolean {
@@ -270,4 +282,4 @@ export class Todo {
     }
     return false;
   }
-}
+} 

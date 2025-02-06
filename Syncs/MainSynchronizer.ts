@@ -73,7 +73,8 @@ export class MainSynchronizer {
         }
         // Obsidian --{m}-> Calendar 
         // patch events
-        this.calendarSync.patchEvent(task, GoogleCalendarSync.getEventDonePatch);
+        task.dueDateTime = event?.dueDateTime || task.dueDateTime;
+		this.calendarSync.patchEvent(task, GoogleCalendarSync.getEventDonePatch);
       } else {
         // Obsidian --{+}-> Calendar
         // insert events
@@ -137,6 +138,7 @@ export class MainSynchronizer {
 
       // Fully updated from calendars(only exclude blockId...)
       task.updateFrom(event);
+	  task.dueDateTime = event.dueDateTime; 
       this.obsidianSync.updateTodo(task);
     });
 

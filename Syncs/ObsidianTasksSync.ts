@@ -109,14 +109,23 @@ export class ObsidianTasksSync {
 
     const queriedTasks = this.dataviewAPI!.pages().file.tasks
       .where((task: STask) => {
-        let taskMatch = task.text.match(/🛫 {0,2}(\d{4}-\d{2}-\d{2})/u);
-        if (!taskMatch) { return false; }
-        return !window.moment(taskMatch[1]).isBefore(startMoment.startOf('day'));
+        let taskMatchStart = task.text.match(/🛫 {0,2}(\d{4}-\d{2}-\d{2})/u);
+        return taskMatchStart !== null && !window.moment(taskMatchStart[1]).isBefore(startMoment.startOf('day'));
       });
 
-    queriedTasks.values.forEach(async (task: STask) => {
-      //  对抓取到的 tasks，没有指定 blockId 需要创建 hashed blockId。
+    queriedTasks.values.forEach(async (task: STask) => {       //  对抓取到的 tasks，没有指定 blockId 需要创建 hashed blockId。
       let todo_details: TodoDetails | null = null;
+	  
+	  let startDateTimeMatch = task.text.match(/🛫 {0,2}(\d{4}-\d{2}-\d{2}[@]?\d{2}:\d{2})/u);
+      let dueDateTimeMatch = task.text.match(/📅 {0,2}(\d{2}:\d{2})/u); 
+	  
+      let startDateTime = startDateTimeMatch ? startDateTimeMatch[1] : "";
+      let dueDateTime = dueDateTimeMatch ? dueDateTimeMatch[1] : ""; 
+	
+	  if (!dueDateTime && startDateTime) {
+          dueDateTime = window.moment(startDateTime, "YYYY-MM-DD[@]HH:mm").add(1, 'hour').format("HH:mm");
+      }
+	  
       if (task.blockId && task.blockId.length > 0) {
         todo_details = this.deserializer.deserialize(task.text);
       } else {
@@ -156,6 +165,8 @@ export class ObsidianTasksSync {
 
       const todo = new Todo({
         ...todo_details,
+		startDateTime,
+		dueDateTime,
         path: task.path,
         eventStatus: task.status
       });
